@@ -78,3 +78,26 @@ python moonpay_usdt_quote.py --providers demo --amounts 50,100,200
 - 不同渠道 API 有地区限制、风控、参数校验差异，部分请求可能返回错误。
 - `transit` 为聚合场景，公开 API 可能变更；脚本已做通用解析，但需按实际接口调整。
 - 请遵守各网站服务条款与法律法规。
+
+## PR 冲突一键处理（新增）
+
+如果你在 GitHub 上看到 "This branch has conflicts"，可在本地执行：
+
+```bash
+scripts/resolve_pr_conflicts.sh main work
+```
+
+脚本会自动：
+
+1. `fetch` 远端分支
+2. 切到你的功能分支
+3. `pull --rebase` 最新功能分支
+4. `rebase` 到目标分支（如 `main`）
+5. 若冲突则列出冲突文件和冲突标记，提示下一步命令
+6. 无冲突时提示 `push --force-with-lease`
+
+> 你也可以省略第二个参数，默认使用当前分支：
+>
+> ```bash
+> scripts/resolve_pr_conflicts.sh main
+> ```
