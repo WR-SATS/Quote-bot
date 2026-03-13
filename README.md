@@ -101,3 +101,21 @@ scripts/resolve_pr_conflicts.sh main work
 > ```bash
 > scripts/resolve_pr_conflicts.sh main
 > ```
+
+## 没有本地仓库怎么解决 PR 冲突？
+
+如果你没有本地环境，也可以直接在 GitHub 网页端处理：
+
+1. 打开你的 PR 页面，点击 **Resolve conflicts**。
+2. 在网页编辑器里保留需要的代码（删除 `<<<<<<<`, `=======`, `>>>>>>>` 标记）。
+3. 点击 **Mark as resolved**，并对所有冲突文件重复。
+4. 点击 **Commit merge** 完成冲突修复提交。
+5. 回到 PR 页面确认冲突已消失并可正常 Merge。
+
+如果按钮不可用（例如冲突太复杂），有两个无本地替代方案：
+
+- 用 **GitHub Codespaces** 临时开一个云端开发环境，再运行：
+  ```bash
+  scripts/resolve_pr_conflicts.sh main <你的分支名>
+  ```
+- 或让有仓库权限的协作者在本地/CI代为执行 rebase 并 push。
