@@ -1,50 +1,121 @@
-# MoonPay USDT 自动报价脚本
+# 多渠道法币买币报价脚本
 
-脚本 `moonpay_usdt_quote.py` 会自动打开 MoonPay 买币页面，输入一个或多个法币金额，并把报价以 **Markdown 表格** 输出到终端；也可选写入 CSV。
+`moonpay_usdt_quote.py` 现已支持多渠道聚合查询，核心覆盖你提的四点：
 
-## 安装
+1. 多渠道：`moonpay`、`banxa`、`transit`（也支持 `demo` 本地演示数据）
+2. 多金额：可同时查小额/大额（如 `50,100,200,1000`）
+3. 支付方式：可指定 `visa`、`apple_pay` 等（按渠道可用性）
+4. 币种与链：可指定 `--asset`（USDT/ETH/BTC）和 `--network`（ethereum/tron/bsc...）
 
-```bash
-pip install playwright
-playwright install chromium
-```
+输出为统一 Markdown 表格，也可追加写入 CSV。
 
-## 用法
-
-### 1) 查询单个金额
+## 快速开始
 
 ```bash
-python moonpay_usdt_quote.py --fiat HKD --crypto USDT --amount 1000
+python moonpay_usdt_quote.py \
+  --fiat USD \
+  --asset USDT \
+  --network ethereum \
+  --providers moonpay,banxa,transit \
+  --payment-methods visa,apple_pay \
+  --amounts 50,100,200,1000 \
+  --allow-failures
 ```
 
-### 2) 一次查询多个金额（自动输出表格）
+> `--allow-failures`：某个渠道失败时不中断，输出 `status=error` 的行，方便批量比较。
+
+## 常用示例
+
+### 1) 按你的场景：多渠道 + 多金额 + 支付方式 + 指定网络
 
 ```bash
-python moonpay_usdt_quote.py --fiat HKD --crypto USDT --amounts 500,1000,2000
+python moonpay_usdt_quote.py \
+  --fiat USD \
+  --asset USDT \
+  --network ethereum \
+  --providers moonpay,banxa,transit \
+  --payment-methods visa,apple_pay \
+  --amounts 50,100,200 \
+  --allow-failures
 ```
 
-### 3) 持续自动获取（每 20 秒一次，共 3 轮）
+### 2) 只跑某一个渠道（例如 Banxa）
 
 ```bash
-python moonpay_usdt_quote.py --fiat HKD --crypto USDT --amounts 1000,2000 --watch --iterations 3 --interval-sec 20
+python moonpay_usdt_quote.py --providers banxa --fiat USD --asset BTC --amounts 100,500 --payment-methods visa
 ```
 
-### 4) 同时保存为 CSV
+### 3) watch 模式持续抓取
 
 ```bash
-python moonpay_usdt_quote.py --fiat HKD --crypto USDT --amounts 500,1000 --csv quotes.csv
+python moonpay_usdt_quote.py --providers moonpay,banxa --amounts 100,200 --watch --iterations 5 --interval-sec 15 --allow-failures
 ```
 
-## 输出示例
+### 4) 输出 CSV
 
-```markdown
-| Timestamp (UTC) | Fiat | Fiat Amount | Crypto | Quote |
-|---|---|---:|---|---|
-| 2026-01-01T00:00:00+00:00 | HKD | 1000 | USDT | 116 USDT |
+```bash
+python moonpay_usdt_quote.py --providers moonpay,banxa,transit --amounts 50,100,200 --csv quotes.csv --allow-failures
 ```
+
+### 5) 本地演示（无网络时验证表格流程）
+
+```bash
+python moonpay_usdt_quote.py --providers demo --amounts 50,100,200
+```
+
+## 字段说明
+
+- `Provider`: 渠道商
+- `Amount`: 法币输入金额
+- `Asset/Network`: 币种与链
+- `Payment`: 支付方式（如 `visa`, `apple_pay`）
+- `Quote`: 预估获得数量
+- `Status`: `ok` 或 `error`
+- `Note`: 错误详情或补充说明
 
 ## 注意
 
-- 这是前端自动化方案，页面结构变化会导致选择器失效，需要维护。
-- MoonPay 可能有地区限制、风控、验证码等机制，自动化可能失败。
-- 请遵守目标网站服务条款和当地法律法规。
+- 不同渠道 API 有地区限制、风控、参数校验差异，部分请求可能返回错误。
+- `transit` 为聚合场景，公开 API 可能变更；脚本已做通用解析，但需按实际接口调整。
+- 请遵守各网站服务条款与法律法规。
+
+## PR 冲突一键处理（新增）
+
+如果你在 GitHub 上看到 "This branch has conflicts"，可在本地执行：
+
+```bash
+scripts/resolve_pr_conflicts.sh main work
+```
+
+脚本会自动：
+
+1. `fetch` 远端分支
+2. 切到你的功能分支
+3. `pull --rebase` 最新功能分支
+4. `rebase` 到目标分支（如 `main`）
+5. 若冲突则列出冲突文件和冲突标记，提示下一步命令
+6. 无冲突时提示 `push --force-with-lease`
+
+> 你也可以省略第二个参数，默认使用当前分支：
+>
+> ```bash
+> scripts/resolve_pr_conflicts.sh main
+> ```
+
+## 没有本地仓库怎么解决 PR 冲突？
+
+如果你没有本地环境，也可以直接在 GitHub 网页端处理：
+
+1. 打开你的 PR 页面，点击 **Resolve conflicts**。
+2. 在网页编辑器里保留需要的代码（删除 `<<<<<<<`, `=======`, `>>>>>>>` 标记）。
+3. 点击 **Mark as resolved**，并对所有冲突文件重复。
+4. 点击 **Commit merge** 完成冲突修复提交。
+5. 回到 PR 页面确认冲突已消失并可正常 Merge。
+
+如果按钮不可用（例如冲突太复杂），有两个无本地替代方案：
+
+- 用 **GitHub Codespaces** 临时开一个云端开发环境，再运行：
+  ```bash
+  scripts/resolve_pr_conflicts.sh main <你的分支名>
+  ```
+- 或让有仓库权限的协作者在本地/CI代为执行 rebase 并 push。
