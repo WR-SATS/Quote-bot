@@ -9,6 +9,27 @@
 
 输出为统一 Markdown 表格，也可追加写入 CSV。
 
+## 前端网页版（可视化比较）
+
+你可以直接启动网页，在页面里输入金额、支付方式、渠道来比较报价：
+
+```bash
+python web_quote_server.py
+```
+
+打开浏览器访问：
+
+```text
+http://127.0.0.1:8000
+```
+
+网页功能：
+
+- 表单输入：法币 / 币种 / 网络 / 金额 / 支付方式 / 渠道
+- 一键查询后按“金额 + 支付方式”分组展示
+- 自动高亮每组中的最佳报价（绿色）
+- 渠道失败不会中断（会显示 `status=error`）
+
 ## 快速开始
 
 ```bash
@@ -81,10 +102,14 @@ python moonpay_usdt_quote.py --providers demo --amounts 50,100,200
 
 ## PR 冲突一键处理（新增）
 
-如果你在 GitHub 上看到 "This branch has conflicts"，可在本地执行：
+如果你在 GitHub 上看到 "This branch has conflicts"，先尝试 PR 页面上的 **Update branch**。
+
+如果 Update branch 不可用，再在本地/云端执行：
 
 ```bash
 scripts/resolve_pr_conflicts.sh main work
+# 或自动偏向目标分支版本（减少手工冲突）
+scripts/resolve_pr_conflicts.sh main work --prefer theirs
 ```
 
 脚本会自动：

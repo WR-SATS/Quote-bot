@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>法币买币渠道报价对比</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>法币买币报价对比</h1>
+      <p class="subtitle">输入金额、支付方式、渠道后，一键获取并直观比较每个渠道报价。</p>
+
+      <form id="quoteForm" class="panel">
+        <div class="grid">
+          <label>法币
+            <input name="fiat" value="USD" required />
+          </label>
+          <label>币种
+            <input name="asset" value="USDT" required />
+          </label>
+          <label>链网络
+            <input name="network" value="ethereum" required />
+          </label>
+          <label>金额（逗号分隔）
+            <input name="amounts" value="50,100,200" required />
+          </label>
+          <label>支付方式（逗号分隔）
+            <input name="paymentMethods" value="visa,apple_pay" required />
+          </label>
+          <label>渠道（逗号分隔）
+            <input name="providers" value="moonpay,banxa,transit,demo" required />
+          </label>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" name="allowFailures" checked />
+          允许单渠道失败并在表格显示 error
+        </label>
+
+        <button id="submitBtn" type="submit">获取报价</button>
+      </form>
+
+      <section class="panel">
+        <div id="status" class="status">等待查询…</div>
+        <div id="summary"></div>
+        <div id="results"></div>
+      </section>
+    </main>
+
+    <script src="/web/app.js" defer></script>
+  </body>
+</html>

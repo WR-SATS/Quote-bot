@@ -4,26 +4,49 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/resolve_pr_conflicts.sh <target-branch> [feature-branch]
+  scripts/resolve_pr_conflicts.sh <target-branch> [feature-branch] [--prefer ours|theirs]
 
 Examples:
   scripts/resolve_pr_conflicts.sh main work
-  scripts/resolve_pr_conflicts.sh main
+  scripts/resolve_pr_conflicts.sh main --prefer theirs
 
 Notes:
 - Requires a clean working tree.
-- If conflicts occur, resolve files then run `git rebase --continue`.
+- Default mode is interactive on conflict.
+- --prefer theirs/ours will auto-resolve all conflicted files during rebase.
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
+prefer_mode=""
+positionals=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --prefer)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --prefer requires a value (ours|theirs)" >&2
+        exit 1
+      fi
+      prefer_mode="$2"
+      shift 2
+      ;;
+    *)
+      positionals+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "$prefer_mode" && "$prefer_mode" != "ours" && "$prefer_mode" != "theirs" ]]; then
+  echo "Error: --prefer must be 'ours' or 'theirs'" >&2
+  exit 1
 fi
 
-# Helper to resolve PR conflicts against target branch.
-target_branch="${1:-main}"
-feature_branch="${2:-$(git rev-parse --abbrev-ref HEAD)}"
+target_branch="${positionals[0]:-main}"
+feature_branch="${positionals[1]:-$(git rev-parse --abbrev-ref HEAD)}"
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   echo "Error: not inside a git repository" >&2
@@ -73,6 +96,47 @@ set +e
 git rebase "${base_ref}"
 rebase_code=$?
 set -e
+
+if [[ $rebase_code -ne 0 && -n "$prefer_mode" ]]; then
+  echo "[5/7] Conflict detected. Auto-resolving with --prefer ${prefer_mode}"
+  while true; do
+    conflict_files=$(git diff --name-only --diff-filter=U || true)
+    if [[ -z "$conflict_files" ]]; then
+      break
+    fi
+
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      git checkout --"${prefer_mode}" -- "$file"
+      git add "$file"
+    done <<< "$conflict_files"
+
+    set +e
+    git rebase --continue
+    continue_code=$?
+    set -e
+
+    if [[ $continue_code -eq 0 ]]; then
+      break
+    fi
+
+    # If there are no conflict files, this likely needs manual edit or commit message edit.
+    next_conflicts=$(git diff --name-only --diff-filter=U || true)
+    if [[ -z "$next_conflicts" ]]; then
+      break
+    fi
+  done
+
+  set +e
+  git rebase --continue >/dev/null 2>&1
+  set -e
+
+  if git rebase --show-current-patch >/dev/null 2>&1; then
+    rebase_code=2
+  else
+    rebase_code=0
+  fi
+fi
 
 if [[ $rebase_code -ne 0 ]]; then
   echo "[5/7] Rebase stopped due to conflicts."
